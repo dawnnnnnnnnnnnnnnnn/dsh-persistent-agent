@@ -28,3 +28,6 @@ GitHub 的 Contributors 列表只统计**以该账号邮箱为 author 的提交*
 
 <!-- attribution: 工作台雏形作者 -->
 
+
+<!-- contributors: 见 AUTHORS.md -->
+
