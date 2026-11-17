@@ -1,6 +1,6 @@
 {
   "name": "@dsh-persistent-agent/shared",
-  "version": "0.99.3",
+  "version": "1.0.0",
   "description": "core 与 heartbeat 共用的契约与配置解析（通道无关）",
   "type": "module",
   "main": "lib/channel.mjs",

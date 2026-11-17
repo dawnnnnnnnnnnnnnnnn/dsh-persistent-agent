@@ -1,6 +1,6 @@
 {
   "name": "dsh-agent-heartbeat",
-  "version": "0.99.3",
+  "version": "1.0.0",
   "description": "定时唤醒 agent 并判断这一次该不该说话；不说话就静默。通道无关，发送动作交给适配器",
   "type": "module",
   "main": "lib/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "dsh-agent-core",
-  "version": "0.99.3",
+  "version": "1.0.0",
   "description": "给 DSH 的 agent 补上 Hermes 式的一层（通道无关）：三层提示词、记忆检索、会话血缘、规则体检、通用任务、轨迹导出，自带控制台",
   "type": "module",
   "main": "lib/index.js",
