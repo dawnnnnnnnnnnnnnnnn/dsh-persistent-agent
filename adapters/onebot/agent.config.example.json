@@ -1,0 +1,9 @@
+{
+  "_说明": "OneBot / NapCat 适配器专用示例。整段复制进 agent.config.json 的 onebot 段即可。",
+  "host": "127.0.0.1",
+  "port": 5700,
+  "token": "{{NAPCAT_TOKEN}}",
+  "ownerQQ": "{{OWNER_QQ}}",
+  "botQQ": "{{BOT_QQ}}",
+  "groups": ["{{GROUP_ID}}"]
+}

@@ -1,0 +1,4 @@
+# dsh-agent-core —— 挂载声明（只注册自己）
+- insert:
+    - id: dsh-agent-core
+      name: dsh-agent-core

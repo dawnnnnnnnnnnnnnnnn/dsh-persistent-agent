@@ -1,0 +1,33 @@
+{
+  "_说明": "复制成 agent.config.json 再填。也可以写 ~/.dsh/agent.config.json 或设环境变量。占位符 {{...}} 不填就会在启动时收到明确报错。",
+  "ownerName": "{{OWNER_NAME}}",
+  "botName": "{{BOT_NAME}}",
+  "ownerLabel": "{{OWNER_LABEL}}",
+  "channelLabel": "chat",
+  "dshHome": "{{DSH_HOME}}",
+  "workspace": "{{WORKSPACE}}",
+  "ports": {
+    "napcat": 5700,
+    "web": 3080,
+    "card": 8643
+  },
+  "onebot": {
+    "_说明": "QQ / OneBot 适配器的全部身份参数都在这一段；不用 QQ 就整段删掉。",
+    "host": "127.0.0.1",
+    "port": 5700,
+    "token": "{{NAPCAT_TOKEN}}",
+    "ownerQQ": "{{OWNER_QQ}}",
+    "botQQ": "{{BOT_QQ}}",
+    "groups": [
+      "{{GROUP_ID}}"
+    ]
+  },
+  "heartbeat": {
+    "triggers": {
+      "enabled": true,
+      "maxPerHour": 4,
+      "cooldownSec": 600,
+      "messageIdleMin": 0
+    }
+  }
+}

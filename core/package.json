@@ -1,0 +1,44 @@
+{
+  "name": "dsh-agent-core",
+  "version": "0.99.3",
+  "description": "给 DSH 的 agent 补上 Hermes 式的一层（通道无关）：三层提示词、记忆检索、会话血缘、规则体检、通用任务、轨迹导出，自带控制台",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "scripts",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [],
+      "platform": "web"
+    }
+  },
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "agent",
+    "hermes",
+    "prompt-tiers",
+    "memory",
+    "console"
+  ],
+  "author": "dsh-persistent-agent contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dawnnnnnnnnnnnnnnnn/dsh-persistent-agent"
+  }
+}

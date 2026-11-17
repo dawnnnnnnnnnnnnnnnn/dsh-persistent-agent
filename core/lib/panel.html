@@ -1,0 +1,1014 @@
+<!--
+  Derived from 玉子控制台 v0.3.10, Copyright (c) 2026 coolsnacpai (https://github.com/coolsnacpai), used with permission.
+  信息结构与分区骨架沿用原作；视觉于 重做（暖白纸面 + 单点缀色）。
+  授权与义务见 THIRD-PARTY-NOTICES.md §4.3。
+-->
+<!DOCTYPE html>
+<!--
+  SPDX-FileCopyrightText: 2026 dsh-persistent-agent contributors
+  SPDX-License-Identifier: MIT
+
+  来源声明：控制台的信息结构与视觉取向早期参考「玉子控制台 v0.3.10」
+  （见 docs/CONSOLE-PLAN.md 的对照表）。
+  本页于 整体重做为暖白纸面 + 单点缀色编辑风格，已不含其页面结构与样式。
+  玉子控制台的许可与仓库地址待核实（THIRD-PARTY-NOTICES.md §7）。
+-->
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Agent Core 控制台</title>
+<style>
+  /* Agent Core 控制台 · Claude/Anthropic 风格（早期 重做）
+     设计要点：暖白纸面 + 陶土色单点缀 + 发丝线 + 大字号重标题 + 克制的动效 */
+  :root{
+    --paper:#FAF9F5; --paper2:#F4F2EC; --card:#FFFFFF;
+    --ink:#1F1E1B; --ink2:#4A4740; --dim:#7A756B;
+    --hair:#E7E3D9; --hair2:#D6D0C2;
+    --clay:#DA7756; --clay-deep:#C4553D; --clay-soft:#F3E2DA;
+    --ok:#5C8A57; --warn:#B58338; --bad:#C0473A;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+    --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Songti SC",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei UI","Microsoft YaHei",system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--paper:#14130F;--paper2:#1A1814;--card:#1E1C17;--ink:#F2EFE7;--ink2:#D8D2C4;--dim:#9A9488;
+      --hair:#2C2921;--hair2:#3B372C;--clay:#E08A66;--clay-deep:#DA7756;--clay-soft:#2B211B;
+      --ok:#8FBF85;--warn:#D2A45F;--bad:#E07060;}
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;color:var(--ink);background:var(--paper);
+    font:15px/1.62 var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh;
+  }
+  @media (prefers-color-scheme:dark){ body{background:var(--paper)} }
+  .wrap{max-width:1060px;margin:0 auto;padding:26px 24px 56px}
+
+  /* ── 顶栏 ─────────────────────────────────── */
+  header{display:flex;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+  .logo{width:32px;height:32px;border-radius:9px;background:var(--clay);color:#fff;
+    display:grid;place-items:center;font:700 15px/1 var(--serif);letter-spacing:0;
+    box-shadow:0 1px 0 rgba(0,0,0,.06), 0 6px 18px -10px rgba(218,119,86,.9);
+    transition:transform .25s ease}
+  .logo:hover{transform:rotate(-3deg) scale(1.04)}
+  h1{font-family:var(--serif);font-size:20px;font-weight:600;margin:0;letter-spacing:.1px}
+  .sub{color:var(--dim);font-size:12.5px}
+  .spacer{flex:1}
+  .chip{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border:1px solid var(--hair);
+    border-radius:999px;background:var(--card);color:var(--ink2);font-size:12.5px;
+    transition:border-color .2s ease, background .2s ease}
+  .chip:hover{border-color:var(--hair2)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--dim);flex:none}
+  .dot.ok{background:var(--ok);animation:pulse 2.4s ease-in-out infinite}
+  .dot.bad{background:var(--bad)}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(92,138,87,.35)}50%{box-shadow:0 0 0 5px rgba(92,138,87,0)}}
+
+  /* ── 导航：发丝下划线滑动 ───────────────────── */
+  nav{display:flex;gap:2px;margin:0 0 24px;flex-wrap:wrap;border-bottom:1px solid var(--hair);padding-bottom:0}
+  nav button{position:relative;background:none;border:0;padding:10px 14px 12px;color:var(--dim);
+    font:inherit;font-size:14px;cursor:pointer;border-radius:8px 8px 0 0;
+    transition:color .18s ease, background .18s ease}
+  nav button:hover{color:var(--ink);background:var(--paper2)}
+  nav button:focus-visible{outline:2px solid var(--clay);outline-offset:-2px}
+  nav button.on{color:var(--ink);font-weight:600}
+  nav button::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2px;
+    background:var(--clay);border-radius:2px;transform:scaleX(0);transform-origin:left;
+    transition:transform .26s cubic-bezier(.22,.61,.36,1)}
+  nav button.on::after{transform:scaleX(1)}
+
+  /* ── 区块与卡片 ───────────────────────────── */
+  section{animation:rise .32s cubic-bezier(.22,.61,.36,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  section.hide{display:none}
+  .sec{border-top:1px solid var(--hair);padding-top:22px;margin-top:26px}
+  .sec:first-of-type{border-top:0;margin-top:0;padding-top:0}
+  .sec h2{font-family:var(--serif);font-size:15px;font-weight:600;margin:0 0 12px;color:var(--ink2);letter-spacing:.2px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+  .card{background:var(--card);border:1px solid var(--hair);border-radius:14px;padding:16px 18px;
+    transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease}
+  .card:hover{transform:translateY(-1px);border-color:var(--hair2);
+    box-shadow:0 10px 26px -22px rgba(31,30,27,.45)}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .title{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--ink)}
+  .kv{display:flex;justify-content:space-between;gap:14px;padding:6px 0;font-size:13.5px;
+    border-top:1px solid transparent}
+  .kv > span{color:var(--dim);flex:none}
+  .kv b{font-weight:500;color:var(--ink);text-align:right}
+  .val{min-width:76px;text-align:right;font-variant-numeric:tabular-nums;font-size:13px;color:var(--ink)}
+  .unit{color:var(--dim);font-size:12px}
+  .desc{color:var(--dim);font-size:12.5px;margin-top:6px}
+
+  /* ── 按钮 ─────────────────────────────────── */
+  .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  button{font:inherit}
+  .btns button, .act button, button.pri{
+    appearance:none;border:1px solid var(--hair2);background:var(--card);color:var(--ink);
+    padding:7px 14px;border-radius:9px;cursor:pointer;font-size:13.5px;
+    transition:background .16s ease, border-color .16s ease, transform .08s ease}
+  .btns button:hover, .act button:hover{border-color:var(--clay);color:var(--clay-deep);background:var(--clay-soft)}
+  .btns button:active, .act button:active{transform:scale(.975)}
+  .btns button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  button.pri{background:var(--clay);border-color:var(--clay);color:#fff}
+  button.pri:hover{background:var(--clay-deep);border-color:var(--clay-deep);color:#fff}
+
+  /* ── 表单 ─────────────────────────────────── */
+  input[type=text], input[type=number], input:not([type]), select, textarea{
+    font:inherit;font-size:13.5px;color:var(--ink);background:var(--paper2);
+    border:1px solid var(--hair2);border-radius:9px;padding:6px 10px;
+    transition:border-color .16s ease, box-shadow .16s ease, background .16s ease}
+  input:focus, select:focus, textarea:focus{
+    outline:none;border-color:var(--clay);background:var(--card);
+    box-shadow:0 0 0 3px rgba(218,119,86,.16)}
+  input[type=checkbox]{width:17px;height:17px;accent-color:var(--clay);cursor:pointer}
+  label.kv > span{white-space:nowrap}
+
+  /* ── 日志 / 代码 ───────────────────────────── */
+  .logtabs{display:flex;gap:6px;margin:10px 0 8px;flex-wrap:wrap}
+  .logtabs button{background:var(--paper2);border:1px solid var(--hair);color:var(--dim);
+    padding:5px 12px;border-radius:999px;cursor:pointer;font-size:12.5px;
+    transition:all .18s ease}
+  .logtabs button:hover{color:var(--ink);border-color:var(--hair2)}
+  .logtabs button.on{background:var(--clay-soft);border-color:var(--clay);color:var(--clay-deep);font-weight:600}
+  .log, pre{font-family:var(--mono);font-size:12.5px;line-height:1.6;color:var(--ink2);
+    background:var(--paper2);border:1px solid var(--hair);border-radius:12px;padding:14px;
+    max-height:52vh;overflow:auto;white-space:pre-wrap;word-break:break-word}
+
+  /* ── 加载骨架 / 提示 ───────────────────────── */
+  .skeleton{position:relative;overflow:hidden;color:transparent;border-radius:8px;min-height:1em}
+  .skeleton::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(90deg, transparent, rgba(218,119,86,.16), transparent);
+    animation:shimmer 1.25s linear infinite}
+  @keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+  .toast{position:fixed;right:20px;bottom:20px;background:var(--ink);color:var(--paper);
+    padding:10px 16px;border-radius:11px;font-size:13.5px;opacity:0;transform:translateY(8px);
+    pointer-events:none;transition:opacity .22s ease, transform .22s ease;z-index:99;
+    box-shadow:0 16px 40px -20px rgba(0,0,0,.5)}
+  .toast.show{opacity:1;transform:none}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field > label{color:var(--dim);font-size:12.5px}
+  .switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+  .switch input{appearance:none;width:34px;height:20px;border-radius:999px;background:var(--hair2);
+    position:relative;transition:background .2s ease;cursor:pointer}
+  .switch input::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+    background:var(--card);transition:transform .2s ease}
+  .switch input:checked{background:var(--clay)}
+  .switch input:checked::after{transform:translateX(14px)}
+
+  /* ── 脏状态 / 徽章 ─────────────────────────── */
+  .dirty{display:none;align-items:center;gap:6px;color:var(--clay-deep);font-size:12.5px}
+  .dirty.on{display:inline-flex;animation:rise .2s ease both}
+  .hide{display:none !important}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important}
+  }
+  @media (max-width:640px){
+    .wrap{padding:18px 14px 44px}
+    nav button{padding:9px 10px 11px;font-size:13px}
+    .grid{grid-template-columns:1fr}
+    .kv{flex-direction:column;gap:3px}
+    .kv b{text-align:left}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">A</div>
+    <div>
+      <h1>Agent Core 控制台</h1>
+      <div class="sub">心跳 · 日记 · 三层提示词 · 记忆检索 · 规则体检 · 重启控制</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="act" onclick="refreshAll()" title="刷新状态">↻ 刷新</button>
+    <div class="chip"><span class="dot" id="sysdot"></span><span id="systext">连接中…</span></div>
+  </header>
+
+  <nav>
+    <button data-page="home" class="on">总览</button>
+    <button data-page="bili">B站</button>
+    <button data-page="hb">心跳</button>
+    <button data-page="diary">日记</button>
+    <button data-page="rules">规则 · 体检</button>
+    <button data-page="mem">记忆</button>
+    <button data-page="debug">调试台</button>
+    <button data-page="log">日志</button>
+  </nav>
+
+  <section id="page-home">
+    <div class="grid" id="svcGrid"></div>
+    <div class="sec">
+      <h2>常用动作</h2>
+      <div class="card">
+        <div class="btns" style="margin-top:0">
+          <button class="act pri" onclick="doAct('rebuild')">重建三层提示词</button>
+          <button class="act" onclick="doAct('index')">重建记忆索引</button>
+          <button class="act" onclick="runChecks()">跑规则体检</button>
+          <button class="act" onclick="doAct('restart-channel')">重启通道</button>
+          <button class="act dan" onclick="doAct('restart-dsh')">重启 DSH</button>
+        </div>
+        <div class="desc" style="margin-top:10px">重启 DSH 会换登录令牌，旧标签页会掉线，请用桌面快捷方式重开。</div>
+      </div>
+    </div>
+  </section>
+
+  
+  
+
+  
+<section id="page-bili" class="hide">
+    <div class="card">
+      <div class="row"><span class="dot" id="biliDot"></span><span class="title">B 站 · 控制台</span>
+        <span style="margin-left:auto;font-size:12px;color:var(--dim)">与本通道控制台共用配置，字段一个不漏</span></div>
+      <div class="kv"><span>配置文件</span><b id="biliPath">—</b></div>
+      <div class="kv"><span>生物钟</span><b id="biliSched">—</b></div>
+      <div class="kv"><span>今日</span><b id="biliToday">—</b></div>
+      <div class="btns"><button id="blReload">重新读取</button><button id="blSave">保存全部</button></div>
+      <div id="blMsg" style="font-size:12.5px;color:var(--dim);margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <div class="row"><span class="dot" id="blDepsDot"></span><span class="title">体检（依赖 / 登录 / 生物钟）</span>
+        <span style="margin-left:auto"><button id="blDepsRun">跑一遍</button></span></div>
+      <div id="blDepsBody" style="font-size:12.5px;color:var(--dim)">还没跑</div>
+    </div>
+
+    <div class="card">
+      <div class="row"><span class="title">总开关</span></div>
+      <label class="kv"><span>生物钟（会自己刷站）</span><b><input type="checkbox" id="f_scheduler_enabled" style="width:auto"></b></label>
+      <div style="font-size:12px;color:var(--dim);margin-top:6px">关着 = 她不会自己醒，只在聊天里你开口才去刷；打开 = 按下面「作息」那三个窗口自己醒</div>
+    </div>
+
+    <div class="card">
+      <div class="row"><span class="title">她是谁</span></div>
+      <label class="kv"><span>Agent 名称</span><b><input id="f_persona_name" style="width:160px"></b></label>
+      <label class="kv"><span>她怎么称呼你</span><b><input id="f_persona_ownerTitle" style="width:160px"></b></label>
+      <label class="kv"><span>她怎么自称</span><b><input id="f_persona_selfClaim" style="width:160px"></b></label>
+    </div>
+
+    <div class="card">
+      <div class="row"><span class="title">你（使用者）</span></div>
+      <label class="kv"><span>使用者 mid</span><b><input id="f_owner_mid" style="width:160px"></b></label>
+      <label class="kv"><span>使用者昵称</span><b><input id="f_owner_name" style="width:160px"></b></label>
+      <label class="kv"><span>她自己 mid（只读）</span><b><input id="f_self_mid" style="width:160px" readonly></b></label>
+      <label class="kv"><span>她自己昵称（只读）</span><b><input id="f_self_name" style="width:160px" readonly></b></label>
+    </div>
+
+    <div class="card">
+      <div class="row"><span class="title">口味</span></div>
+      <label class="kv"><span>爱看（逗号分隔）</span><b><input id="f_preferences_like" style="width:420px"></b></label>
+      <label class="kv"><span>不爱看（逗号分隔）</span><b><input id="f_preferences_dislike" style="width:420px"></b></label>
+    </div>
+
+    <div class="card">
+      <div class="row"><span class="title">作息</span></div>
+      <div id="blWins"></div>
+      <div class="btns" style="margin-top:6px"><button id="blAddWin">+ 添加窗口</button></div>
+      <label class="kv"><span>最小唤醒间隔（分钟）</span><b><input id="f_night_minGapMin" type="number" min="1" style="width:100px"></b></label>
+      <label class="kv"><span>今晚不看的概率</span><b><input id="f_night_skipChance" type="number" step="0.05" min="0" max="0.95" style="width:100px"></b></label>
+      <label class="kv"><span>单次醒来观看视频数量</span><b><input id="f_night_maxVideos" type="number" min="1" max="20" style="width:100px"></b></label>
+      <label class="kv"><span>每天最多醒几次</span><b><input id="f_night_maxWakesPerDay" type="number" min="0" max="12" style="width:100px"></b></label>
+    </div>
+
+    <div class="card">
+      <div class="row"><span class="title">分享（主动告诉你 · 二选一）</span></div>
+      <label class="kv"><span>开启</span><b><input type="checkbox" id="f_share_enabled" style="width:auto"></b></label>
+      <label class="kv"><span>分享方式</span><b><select id="f_share_via"><option value="comment">评论区 @ 你</option><option value="dm">B站私信</option></select></b></label>
+      <label class="kv"><span>每天上限</span><b><input id="f_quota_shareDaily" type="number" min="0" max="20" style="width:100px"></b></label>
+    </div>
+
+    <div class="card">
+      <div class="row"><span class="title">监听</span></div>
+      <label class="kv"><span>评论区监听</span><b><input type="checkbox" id="f_listen_comment" style="width:auto"></b></label>
+      <label class="kv"><span>轮询间隔（秒）</span><b><input id="f_listen_commentIntervalSec" type="number" min="60" style="width:100px"></b></label>
+      <label class="kv"><span>范围</span><b><select id="f_listen_scope"><option value="both">评论 + 私信</option><option value="comment">只评论</option><option value="dm">只私信</option></select></b></label>
+      <label class="kv"><span>同一个人最多只回一条</span><b><input type="checkbox" id="f_listen_oncePerPerson" style="width:auto"></b></label>
+      <label class="kv"><span>全天（睡着也回）</span><b><input type="checkbox" id="f_listen_allDay" style="width:auto"></b></label>
+      <label class="kv"><span>私信监听（只认使用者）</span><b><input type="checkbox" id="f_listen_dm" style="width:auto"></b></label>
+      <label class="kv"><span>直播间监听</span><b><input type="checkbox" id="f_listen_live" style="width:auto"></b></label>
+      <label class="kv"><span>直播间号</span><b><input id="f_listen_liveRoom" style="width:160px"></b></label>
+      <label class="kv"><span>直播范围</span><b><select id="f_listen_liveScope"><option value="owner">只认使用者</option><option value="all">所有人</option></select></b></label>
+    </div>
+
+    <div class="card">
+      <div class="row"><span class="title">日记与推送</span></div>
+      <label class="kv"><span>推送日记摘要</span><b><input type="checkbox" id="f_diary_push" style="width:auto"></b></label>
+      <label class="kv"><span>使用者 @ 请求总结</span><b><input type="checkbox" id="f_listen_mentionSummary" style="width:auto"></b></label>
+      <label class="kv"><span>推送方式</span><b><select id="f_notify_type"><option value="none">不推送</option><option value="command">命令</option><option value="webhook">webhook</option></select></b></label>
+      <label class="kv"><span>webhook 地址</span><b><input id="f_notify_url" style="width:340px"></b></label>
+      <label class="kv"><span>命令</span><b><input id="f_notify_cmd" style="width:340px"></b></label>
+      <label class="kv"><span>命令参数（JSON 数组）</span><b><input id="f_notify_args" style="width:340px" placeholder='["C:/path/to/cli.js"]'></b></label>
+      <div class="btns"><button id="blNotifyTest">发条测试</button><span id="blNotifyMsg" style="font-size:12px;color:var(--dim);margin-left:8px"></span></div>
+    </div>
+
+    <div class="card">
+      <div class="row"><span class="title">B 站 cookie</span></div>
+      <div style="font-size:12px;color:var(--dim);margin-bottom:6px">浏览器 F12 → Cookie 复制（SESSDATA 是 HttpOnly，console 拿不到）；写入后永不回显</div>
+      <label class="kv"><span>SESSDATA</span><b><input id="ck_sessdata" style="width:340px"></b></label>
+      <label class="kv"><span>bili_jct</span><b><input id="ck_bili_jct" style="width:340px"></b></label>
+      <label class="kv"><span>buvid3（可空）</span><b><input id="ck_buvid3" style="width:340px"></b></label>
+      <div class="btns"><button id="blCookieSave">写入凭据</button><span id="blCookieMsg" style="font-size:12px;color:var(--dim);margin-left:8px"></span></div>
+    </div>
+
+    <div class="card">
+      <div class="row"><span class="title">待审队列（她发出去之前要我点头的）</span></div>
+      <div id="blPending" style="font-size:12.5px;color:var(--dim)">—</div>
+      <div class="btns" style="margin-top:6px"><button id="blPendingReload">刷新</button></div>
+    </div>
+
+    <div class="card">
+      <div class="row"><span class="title">工具链 <span style="font-size:11px;color:#e07070">（重启后生效）</span></span></div>
+      <label class="kv"><span>专用会话目录</span><b><input id="f_home" style="width:340px"></b></label>
+      <label class="kv"><span>工具目录</span><b><input id="f_toolsPath" style="width:340px"></b></label>
+      <div style="font-size:12px;color:#e07070;margin-top:6px">改完要重启 DSH；绝对不要改 sessions 里的会话文件夹名</div>
+    </div>
+
+</section>
+
+<section id="page-hb" class="hide">
+    <div class="card">
+      <div class="row"><span class="title">心跳节奏</span>
+        <span class="desc" style="margin-left:auto">保存后下一轮 tick（60 秒内）生效</span></div>
+
+      <div class="field">
+        <label>心跳周期</label>
+        <div class="row">
+          <input type="number" id="ivHours" min="0" max="24" step="1"><span class="unit">小时</span>
+          <input type="number" id="ivMinutes" min="0" max="59" step="5"><span class="unit">分钟</span>
+          <span class="val" id="ivPreview"></span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>随机抖动</label>
+        <div class="row">
+          <label class="switch"><input type="checkbox" id="jitterOn"><span class="track"></span><span class="unit">开启</span></label>
+          <span class="unit">周期后额外随机 0 ~</span>
+          <input type="range" id="jitterRange" min="0" max="60" step="5">
+          <span class="val" id="jitterVal">0 分钟</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>安静时段（这段时间不叫醒）</label>
+        <div class="row"><input type="time" id="quietStart"><span class="unit">到</span><input type="time" id="quietEnd"></div>
+      </div>
+
+      <div class="field">
+        <label>心跳开关</label>
+        <div class="row">
+          <label class="switch"><input type="checkbox" id="hbOn"><span class="track"></span><span class="unit">启用</span></label>
+          <span class="val" id="nextRun" style="min-width:auto"></span>
+        </div>
+      </div>
+
+      <div class="btns"><button class="act pri" onclick="saveCfg()">保存设置</button></div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="row"><span class="title">心跳提示词</span><span class="desc" style="margin-left:auto">留空 = 内置默认</span></div>
+      <div class="field"><textarea id="hbPrompt" rows="6" placeholder="（留空用内置）"></textarea></div>
+    </div>
+  </section>
+
+  <section id="page-diary" class="hide">
+    <div class="card">
+      <div class="row"><span class="title">日记</span><span class="desc" style="margin-left:auto">一本：私记.md（B站小节 + 今日通道私记）</span></div>
+
+      <div class="field">
+        <label>写日记时间</label>
+        <div class="row">
+          <input type="time" id="diaryTime">
+          <label class="switch"><input type="checkbox" id="diaryOn"><span class="track"></span><span class="unit">启用</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>推给他的时间窗（在这段里随机挑一分钟发「给他看」）</label>
+        <div class="row"><input type="time" id="pushFrom"><span class="unit">到</span><input type="time" id="pushTo"></div>
+      </div>
+
+      <div class="field">
+        <label>文体与长度</label>
+        <div class="row">
+          <select id="diaryStyle"><option>散文</option><option>短句</option><option>信</option><option>清单</option></select>
+          <input type="number" id="diaryMaxChars" min="100" max="4000" step="100"><span class="unit">字以内</span>
+        </div>
+      </div>
+
+      <div class="field"><label>额外主题</label><input type="text" id="diaryTopics" style="width:100%" placeholder="逗号分隔，例如：今天看的视频, 他说过的话"></div>
+      <div class="field"><label>自定义写日记指令</label><textarea id="diaryCustom" rows="4" placeholder="留空就用内置模板"></textarea></div>
+
+      <div class="btns"><button class="act pri" onclick="saveCfg()">保存设置</button></div>
+    </div>
+  </section>
+
+  <section id="page-rules" class="hide">
+    <div class="card">
+      <div class="row"><span class="title">规则体检</span>
+        <button class="act" style="margin-left:auto" onclick="runChecks()">重新跑</button></div>
+      <div class="desc" style="margin-top:6px">每一条都是「会失败的检查」；任一项 ⛔ 就说明某个机制掉了。</div>
+      <pre class="log" id="checks" style="height:380px">（点「重新跑」）</pre>
+    </div>
+  </section>
+
+  <section id="page-mem" class="hide">
+    <div class="card">
+      <div class="row"><span class="title">记忆检索</span></div>
+      <div class="field">
+        <div class="row">
+          <input type="text" id="q" style="flex:1;min-width:220px" placeholder="生日 / 动态 / 声音 / 会话规则…">
+          <button class="act pri" onclick="doSearch()">检索</button>
+        </div>
+      </div>
+      <pre class="log" id="hits" style="height:240px">…</pre>
+    </div>
+  </section>
+
+  
+
+<section id="page-debug" class="hide">
+    <div class="card">
+      <div class="row"><span class="title">三层提示词</span>
+        <span class="desc" style="margin-left:auto" id="tierAt"></span></div>
+      <div class="logtabs" style="margin-top:10px">
+        <button data-tier="context" class="on">context</button>
+        <button data-tier="volatile">volatile</button>
+        <button data-tier="full">volatile 完整</button>
+      </div>
+      <pre class="log" id="tiers" style="height:340px">…</pre>
+    </div>
+  </section>
+
+  <section id="page-log" class="hide">
+    <div class="card">
+      <div class="logtabs">
+        <button data-log="core" class="on">core</button>
+        <button data-log="heartbeat">heartbeat</button>
+        <button data-log="restart">restart</button>
+        <button data-log="checks">checks</button>
+        <button data-log="watchdog">watchdog</button>
+      </div>
+      <pre class="log" id="logs">（选一个日志）</pre>
+    </div>
+  </section>
+
+  <footer>Agent Core · 通道无关 · 所有接口只接受本机回环</footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var API = "/dsh-agent-core";
+function $(id) { return document.getElementById(id); }
+function pad(n) { return String(n).padStart(2, "0"); }
+function hm(min) { return pad(Math.floor(min / 60)) + ":" + pad(min % 60); }
+function parseHM(s) { var p = String(s || "0:0").split(":").map(Number); return (p[0] || 0) * 60 + (p[1] || 0); }
+
+var toastTimer = null;
+function toast(msg) {
+  var t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { t.classList.remove("show"); }, 2600);
+}
+function get(p) { return fetch(API + p, { headers: { accept: "application/json" } }).then(function (r) { return r.json(); }); }
+function post(p, b) {
+  return fetch(API + p, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b || {}) })
+    .then(function (r) { return r.json(); });
+}
+
+// 导航
+Array.prototype.forEach.call(document.querySelectorAll("nav button"), function (b) {
+  b.onclick = function () {
+    Array.prototype.forEach.call(document.querySelectorAll("nav button"), function (x) { x.classList.remove("on"); });
+    b.classList.add("on");
+    Array.prototype.forEach.call(document.querySelectorAll("section[id^=page-]"), function (s) { s.classList.add("hide"); });
+    var el = $("page-" + b.dataset.page);
+    if (el) el.classList.remove("hide");
+    if (b.dataset.page === "mem") doSearch(true);
+    if (b.dataset.page === "debug") loadTier("context");
+    if (b.dataset.page === "log") loadLog("core");
+    if (b.dataset.page === "bili") loadBili();
+  };
+});
+
+// 控制台（早期）：与本通道控制台同级的页面，读写同一份 bili-whale.config.json
+var BL = { cfg: null, status: null };
+
+function blVal(id) { var e = $(id); return e ? e.value : ""; }
+function blChk(id) { var e = $(id); return !!(e && e.checked); }
+function blSet(id, v) { var e = $(id); if (e) e.value = v == null ? "" : v; }
+function blSetChk(id, v) { var e = $(id); if (e) e.checked = !!v; }
+
+function blWinRow(w, i, total) {
+  return '<div class="kv" style="gap:8px">'
+    + '<span>窗口' + (i + 1) + '</span><b style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+    + '<input class="bl-w-start" data-i="' + i + '" value="' + (w.start || "") + '" placeholder="20:00" style="width:86px">'
+    + '<span style="color:var(--dim)">–</span>'
+    + '<input class="bl-w-end" data-i="' + i + '" value="' + (w.end || "") + '" placeholder="22:00" style="width:86px">'
+    + '<span style="color:var(--dim)">醒</span>'
+    + '<input class="bl-w-wakes" data-i="' + i + '" type="number" min="1" max="12" value="' + (w.wakes || 1) + '" style="width:64px">'
+    + '<span style="color:var(--dim)">次</span>'
+    + (total > 1 ? '<button class="bl-w-del" data-i="' + i + '" style="padding:2px 8px">删</button>' : '')
+    + '</b></div>';
+}
+
+function renderBili() {
+  var c = BL.cfg || {}, n = c.night || {}, s = BL.status || {};
+  var dot = $("biliDot"); if (dot) dot.className = "dot " + (s.schedulerEnabled ? "ok" : "bad");
+  if ($("biliPath")) $("biliPath").textContent = c.__path || "";
+  if ($("biliSched")) $("biliSched").textContent = s.schedulerEnabled ? "开着" : "已关（打开就按作息自己醒）";
+  if ($("biliToday")) $("biliToday").textContent = "分享 " + (s.shares || 0) + "/" + (s.sharesMax || 3) + " · 评论 " + (s.commentsToday || 0) + " 条"
+    + (s.plan && s.plan.atText ? " · 下次 " + s.plan.atText : "");
+  blSetChk("f_scheduler_enabled", s.schedulerEnabled !== false);
+  var wins = Array.isArray(n.windows) ? n.windows : [];
+  if ($("blWins")) $("blWins").innerHTML = wins.length
+    ? wins.map(function (w, i) { return blWinRow(w, i, wins.length); }).join("")
+    : '<div style="color:var(--dim)">（没有窗口 = 不会醒；点下面加一个）</div>';
+  blSet("f_night_minGapMin", n.minGapMin != null ? n.minGapMin : 10);
+  blSet("f_night_skipChance", n.skipChance != null ? n.skipChance : 0.3);
+  blSet("f_night_maxVideos", n.maxVideos != null ? n.maxVideos : 5);
+  blSet("f_night_maxWakesPerDay", n.maxWakesPerDay != null ? n.maxWakesPerDay : 6);
+  var pe = c.persona || {}, ow = c.owner || {}, se = c.self || {}, pr = c.preferences || {};
+  blSet("f_persona_name", pe.name); blSet("f_persona_ownerTitle", pe.ownerTitle); blSet("f_persona_selfClaim", pe.selfClaim);
+  blSet("f_owner_mid", ow.mid); blSet("f_owner_name", ow.name);
+  blSet("f_self_mid", se.mid); blSet("f_self_name", se.name);
+  blSet("f_preferences_like", Array.isArray(pr.like) ? pr.like.join("，") : (pr.like || ""));
+  blSet("f_preferences_dislike", Array.isArray(pr.dislike) ? pr.dislike.join("，") : (pr.dislike || ""));
+  var sh = c.share || {}, q = c.quota || {}, L = c.listen || {}, d = c.diary || {}, nf = c.notify || {};
+  blSetChk("f_share_enabled", sh.enabled !== false);
+  blSet("f_share_via", sh.via === "dm" ? "dm" : "comment");
+  blSet("f_quota_shareDaily", q.shareDaily != null ? q.shareDaily : 3);
+  blSetChk("f_listen_comment", L.comment !== false);
+  blSet("f_listen_commentIntervalSec", L.commentIntervalSec != null ? L.commentIntervalSec : 300);
+  blSet("f_listen_scope", L.scope || "both");
+  blSetChk("f_listen_oncePerPerson", !!L.oncePerPerson);
+  blSetChk("f_listen_allDay", !!L.allDay);
+  blSetChk("f_listen_dm", !!L.dm);
+  blSetChk("f_listen_live", !!L.live);
+  blSet("f_listen_liveRoom", L.liveRoom);
+  blSet("f_listen_liveScope", L.liveScope || "owner");
+  blSetChk("f_listen_mentionSummary", !!L.mentionSummary);
+  blSetChk("f_diary_push", d.push !== false);
+  blSet("f_notify_type", nf.type || "none");
+  blSet("f_notify_url", nf.url);
+  blSet("f_notify_cmd", nf.cmd);
+  blSet("f_notify_args", Array.isArray(nf.args) ? JSON.stringify(nf.args) : "");
+  blSet("f_home", c.home); blSet("f_toolsPath", c.toolsPath);
+}
+
+function collectBili() {
+  var wins = [];
+  var st = document.querySelectorAll(".bl-w-start"), en = document.querySelectorAll(".bl-w-end"), wk = document.querySelectorAll(".bl-w-wakes");
+  for (var i = 0; i < st.length; i++) wins.push({ start: st[i].value.trim(), end: en[i].value.trim(), wakes: Number(wk[i].value) || 1 });
+  var splitList = function (v) { return String(v || "").split(/[,，]/).map(function (x) { return x.trim(); }).filter(Boolean); };
+  var args = null;
+  try { args = blVal("f_notify_args").trim() ? JSON.parse(blVal("f_notify_args")) : []; } catch (e) { args = null; }
+  return {
+    scheduler: { enabled: blChk("f_scheduler_enabled") },
+    night: {
+      windows: wins,
+      minGapMin: Number(blVal("f_night_minGapMin")) || 10,
+      skipChance: Number(blVal("f_night_skipChance")) || 0,
+      maxVideos: Number(blVal("f_night_maxVideos")) || 5,
+      maxWakesPerDay: Number(blVal("f_night_maxWakesPerDay")) || 0
+    },
+    persona: { name: blVal("f_persona_name"), ownerTitle: blVal("f_persona_ownerTitle"), selfClaim: blVal("f_persona_selfClaim") },
+    owner: { mid: blVal("f_owner_mid"), name: blVal("f_owner_name") },
+    preferences: { like: splitList(blVal("f_preferences_like")), dislike: splitList(blVal("f_preferences_dislike")) },
+    share: { enabled: blChk("f_share_enabled"), via: blVal("f_share_via") },
+    quota: { shareDaily: Number(blVal("f_quota_shareDaily")) || 0 },
+    listen: {
+      comment: blChk("f_listen_comment"),
+      commentIntervalSec: Number(blVal("f_listen_commentIntervalSec")) || 300,
+      scope: blVal("f_listen_scope"),
+      oncePerPerson: blChk("f_listen_oncePerPerson"),
+      allDay: blChk("f_listen_allDay"),
+      dm: blChk("f_listen_dm"),
+      live: blChk("f_listen_live"),
+      liveRoom: blVal("f_listen_liveRoom"),
+      liveScope: blVal("f_listen_liveScope"),
+      mentionSummary: blChk("f_listen_mentionSummary")
+    },
+    diary: { push: blChk("f_diary_push") },
+    notify: (args === null ? { __badArgs: true } : { type: blVal("f_notify_type"), url: blVal("f_notify_url"), cmd: blVal("f_notify_cmd"), args: args }),
+    home: blVal("f_home").trim(),
+    toolsPath: blVal("f_toolsPath").trim()
+  };
+}
+
+function loadBili() {
+  fetch("/dsh-agent-core/bili/settings", { headers: { accept: "application/json" } })
+    .then(function (r) { return r.json() })
+    .then(function (j) {
+      if (!j.ok) { if ($("blMsg")) $("blMsg").textContent = "读取失败：" + (j.error || ""); return; }
+      BL.cfg = j.config || {}; BL.status = j.status || {};
+      BL.cfg.__path = j.configPath || "";
+      renderBili();
+      if ($("blMsg")) $("blMsg").textContent = "";
+      loadBiliPending();
+      loadBiliDeps();
+    })
+    .catch(function (e) { if ($("blMsg")) $("blMsg").textContent = "读取失败：" + e.message; });
+}
+
+function saveBili() {
+  var body = collectBili();
+  if (body.notify && body.notify.__badArgs) { $("blMsg").textContent = "✗ 命令参数不是合法 JSON 数组"; return; }
+  if ($("blMsg")) $("blMsg").textContent = "保存中…";
+  fetch("/dsh-agent-core/bili/settings-save", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ config: body }) })
+    .then(function (r) { return r.json() })
+    .then(function (j) {
+      if (!j.ok) {
+        if ($("blMsg")) $("blMsg").textContent = "✗ " + (j.error || "保存失败");
+        if (window.__agentCoreToast) window.__agentCoreToast("保存失败，看下面那行红字", true);
+        return;
+      }
+      if ($("blMsg")) $("blMsg").textContent = "✓ 已保存（" + (j.configPath || "") + "）";
+      if (window.__agentCoreMarkClean) window.__agentCoreMarkClean();
+      if (window.__agentCoreToast) window.__agentCoreToast("已保存 · 下一轮 tick 按新值跑");
+      loadBili();
+    })
+    .catch(function (e) { if ($("blMsg")) $("blMsg").textContent = "✗ " + e.message; });
+}
+
+function loadBiliDeps() {
+  var body = $("blDepsBody"), dot = $("blDepsDot");
+  if (body) body.textContent = "跑体检中…（最多 60 秒）";
+  fetch("/dsh-agent-core/bili/deps", { headers: { accept: "application/json" } })
+    .then(function (r) { return r.json() })
+    .then(function (j) {
+      if (!j || !j.ok) {
+        if (dot) dot.className = "dot bad";
+        if (body) body.innerHTML = '<span style="color:#e07070">✗ ' + ((j && j.error) || "体检失败") + '</span>';
+        return;
+      }
+      if (dot) dot.className = "dot ok";
+      var items = j.items || [];
+      var rows = items.map(function (it) {
+        var mark = it.ok === false ? '<span style="color:#e07070">✗</span>' : '<span style="color:#5fbf7f">✓</span>';
+        return '<div class="kv" style="align-items:flex-start"><span>' + mark + ' ' + (it.name || "") + '</span>'
+          + '<b style="text-align:right;max-width:62%;font-weight:400">' + (it.detail || "") + '</b></div>';
+      }).join("");
+      var extra = "";
+      if (j.scheduler) extra += '<div class="kv"><span>生物钟</span><b>' + (j.scheduler.ok ? (j.scheduler.reason || "已启动") : ("✗ " + (j.scheduler.reason || ""))) + '</b></div>';
+      if (j.self) extra += '<div class="kv"><span>她自己</span><b>' + j.self.name + '（mid ' + j.self.mid + '）</b></div>';
+      if (body) body.innerHTML = rows + extra;
+    })
+    .catch(function (e) { if (body) body.textContent = "✗ " + e.message; });
+}
+
+function saveBiliCookie() {
+  var body = { sessdata: blVal("ck_sessdata"), bili_jct: blVal("ck_bili_jct"), buvid3: blVal("ck_buvid3") };
+  if (!body.sessdata || !body.bili_jct) { if ($("blCookieMsg")) $("blCookieMsg").textContent = "SESSDATA 和 bili_jct 都要填"; return; }
+  fetch("/dsh-bili/api/cookie", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+    .then(function (r) { return r.json() })
+    .then(function (j) {
+      if ($("blCookieMsg")) $("blCookieMsg").textContent = (j && j.ok) ? "✓ 已写入（不回显）" : "✗ " + ((j && j.error) || "失败");
+      if (j && j.ok) { blSet("ck_sessdata", ""); blSet("ck_bili_jct", ""); blSet("ck_buvid3", ""); }
+    }).catch(function (e) { if ($("blCookieMsg")) $("blCookieMsg").textContent = "✗ " + e.message; });
+}
+
+function loadBiliPending() {
+  fetch("/dsh-bili/api/pending", { headers: { accept: "application/json" } })
+    .then(function (r) { return r.json() })
+    .then(function (j) {
+      var box = $("blPending"); if (!box) return;
+      var items = (j && (j.items || j.pending)) || [];
+      if (!items.length) { box.textContent = "（空）"; return; }
+      box.innerHTML = items.map(function (it, i) {
+        return '<div style="border-top:1px solid var(--line);padding:6px 0">'
+          + '<div>' + (it.kind || it.type || "待审") + ' · ' + (it.at || "") + '</div>'
+          + '<div style="color:var(--text)">' + String(it.text || it.content || "").slice(0, 200) + '</div>'
+          + '<div class="btns" style="margin-top:4px"><button class="bl-p-ok" data-id="' + (it.id || i) + '">通过</button>'
+          + '<button class="bl-p-no" data-id="' + (it.id || i) + '">驳回</button></div></div>';
+      }).join("");
+    }).catch(function () {});
+}
+
+function biliPendingAct(id, what) {
+  fetch("/dsh-bili/api/pending/" + what, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: id }) })
+    .then(function () { loadBiliPending(); }).catch(function () {});
+}
+
+function biliNotifyTest() {
+  if ($("blNotifyMsg")) $("blNotifyMsg").textContent = "发送中…";
+  fetch("/dsh-bili/api/notify-test", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({}) })
+    .then(function (r) { return r.json() })
+    .then(function (j) { if ($("blNotifyMsg")) $("blNotifyMsg").textContent = (j && j.ok) ? "✓ 已发" : "✗ " + ((j && j.error) || "失败"); })
+    .catch(function (e) { if ($("blNotifyMsg")) $("blNotifyMsg").textContent = "✗ " + e.message; });
+}
+
+setTimeout(function () {
+  if ($("blReload")) $("blReload").onclick = loadBili;
+  if ($("blDepsRun")) $("blDepsRun").onclick = loadBiliDeps;
+  if ($("blSave")) $("blSave").onclick = saveBili;
+  if ($("blCookieSave")) $("blCookieSave").onclick = saveBiliCookie;
+  if ($("blNotifyTest")) $("blNotifyTest").onclick = biliNotifyTest;
+  if ($("blPendingReload")) $("blPendingReload").onclick = loadBiliPending;
+  if ($("blAddWin")) $("blAddWin").onclick = function () {
+    var cur = (BL.cfg && BL.cfg.night && Array.isArray(BL.cfg.night.windows)) ? BL.cfg.night.windows.slice() : [];
+    cur.push({ start: "20:00", end: "22:00", wakes: 1 });
+    BL.cfg = BL.cfg || {}; BL.cfg.night = BL.cfg.night || {}; BL.cfg.night.windows = cur;
+    renderBili();
+  };
+  document.addEventListener("click", function (e) {
+    var t2 = e.target;
+    if (!t2 || !t2.classList) return;
+    if (t2.classList.contains("bl-w-del")) {
+      var i = Number(t2.getAttribute("data-i"));
+      var cur = (BL.cfg.night.windows || []).slice(); cur.splice(i, 1);
+      BL.cfg.night.windows = cur; renderBili();
+    } else if (t2.classList.contains("bl-p-ok")) biliPendingAct(t2.getAttribute("data-id"), "approve");
+    else if (t2.classList.contains("bl-p-no")) biliPendingAct(t2.getAttribute("data-id"), "reject");
+  });
+}, 0);
+
+function svcCard(title, ok, lines, actions) {
+  var dot = ok === null ? "" : (ok ? "ok" : "bad");
+  return '<div class="card"><div class="row"><span class="dot ' + dot + '"></span><span class="title">' + title + "</span></div>"
+    + lines.map(function (kv) { return '<div class="kv"><span>' + kv[0] + "</span><b>" + kv[1] + "</b></div>"; }).join("")
+    + (actions ? '<div class="btns">' + actions + "</div>" : "") + "</div>";
+}
+
+var nextRunText = "—";
+function renderCards(s) {
+  var hb = s.heartbeat || {}, q = (s.channelProbe && s.channelProbe.quota) ? s.channelProbe.quota : (s.quota || {}), idx = s.index || {}, pr = s.prompt || {};
+  var patches = (s.patches || []).map(function (p) { return p.pkg + "@" + p.version; }).join(" ") || "—";
+  var dp = hb.diaryPush || {};
+  var html = [
+    svcCard("心跳", hb.enabled === false ? null : true, [
+      ["上次", hb.lastAt ? new Date(hb.lastAt).toLocaleString() : "—"],
+      ["下次", nextRunText]
+    ], '<button class="act" onclick="goPage(\'hb\')">调节奏</button>'),
+    svcCard("日记", hb.lastDiaryDate ? true : null, [
+      ["已写到", hb.lastDiaryDate || "—"],
+      ["推送窗", (dp.enabled === false ? "已关" : (hm(Number(dp.startMinute !== undefined ? dp.startMinute : 1430)) + "–" + hm(Number(dp.endMinute !== undefined ? dp.endMinute : 1438))))]
+    ], '<button class="act" onclick="goPage(\'diary\')">改设置</button>'),
+    svcCard("会话", s.session ? true : null, [
+      ["当前", (s.session || "—").replace(/^[a-z]+-(?:private|group)-\d+-/, "…-")],
+      ["已认会话", (s.channelProbe && s.channelProbe.groupsSeen !== undefined) ? s.channelProbe.groupsSeen : "—"]
+    ]),
+    svcCard("通道配额", (q.total || 0) < 10, [
+      ["今日已说", (q.total === undefined ? 0 : q.total) + " / 10"],
+      ["超限", "只回使用者 @"]
+    ]),
+    svcCard("记忆索引", idx.chunks ? true : null, [
+      ["文件", idx.files === undefined ? "—" : idx.files],
+      ["分段", idx.chunks === undefined ? "—" : idx.chunks]
+    ], '<button class="act" onclick="doAct(\'index\')">重建</button>'),
+    svcCard("三层提示词", pr.chars ? true : null, [
+      ["字数", pr.chars || "—"],
+      ["构建", pr.builtAt ? new Date(pr.builtAt).toLocaleTimeString() : "—"]
+    ], '<button class="act" onclick="doAct(\'rebuild\')">重建</button>'),
+    svcCard("补丁", (s.patches || []).length ? true : null, [["快照", patches]])
+  ].join("");
+  $("svcGrid").innerHTML = html;
+}
+
+function goPage(p) {
+  var btn = document.querySelector('nav button[data-page="' + p + '"]');
+  if (btn) btn.click();
+}
+
+function syncJitter() {
+  var on = $("jitterOn").checked;
+  $("jitterRange").disabled = !on;
+  $("jitterVal").textContent = on ? ($("jitterRange").value + " 分钟") : "关闭";
+}
+function syncInterval() {
+  var m = Number($("ivHours").value || 0) * 60 + Number($("ivMinutes").value || 0);
+  $("ivPreview").textContent = m > 0 ? ("= " + m + " 分钟") : "";
+}
+function renderConfig(c) {
+  var hb = (c && c.heartbeat) || {};
+  var iv = Number(hb.intervalSec || 14400);
+  $("ivHours").value = Math.floor(iv / 3600);
+  $("ivMinutes").value = Math.round((iv % 3600) / 60);
+  var j = Number(hb.jitterSec || 0);
+  $("jitterOn").checked = j > 0;
+  $("jitterRange").value = Math.min(60, Math.round(j / 60));
+  var qh = hb.quietHours || [1, 9];
+  $("quietStart").value = hm(Number(qh[0]) * 60);
+  $("quietEnd").value = hm(Number(qh[1]) * 60);
+  $("hbOn").checked = hb.enabled !== false;
+  var d = hb.diary || {};
+  $("diaryTime").value = hm(Number(d.hour !== undefined ? d.hour : 23) * 60 + Number(d.minute !== undefined ? d.minute : 40));
+  $("diaryOn").checked = d.enabled !== false;
+  var dp = hb.diaryPush || {};
+  $("pushFrom").value = hm(Number(dp.startMinute !== undefined ? dp.startMinute : 1430));
+  $("pushTo").value = hm(Number(dp.endMinute !== undefined ? dp.endMinute : 1438));
+  $("diaryStyle").value = d.style || "散文";
+  $("diaryMaxChars").value = d.maxChars !== undefined ? d.maxChars : 700;
+  $("diaryTopics").value = d.topics || "";
+  $("diaryCustom").value = d.customPrompt || "";
+  $("hbPrompt").value = "";
+  $("hbPrompt").placeholder = hb.prompt ? "（已自定义；留空保存可恢复内置）" : "（留空用内置）";
+  syncJitter(); syncInterval();
+}
+
+function saveCfg() {
+  var ivMin = Number($("ivHours").value || 0) * 60 + Number($("ivMinutes").value || 0);
+  if (ivMin < 1) { toast("心跳周期至少 1 分钟"); return; }
+  var dt = parseHM($("diaryTime").value);
+  var body = { heartbeat: {
+    intervalSec: ivMin * 60,
+    jitterSec: $("jitterOn").checked ? Number($("jitterRange").value) * 60 : 0,
+    quietHours: [Math.floor(parseHM($("quietStart").value) / 60), Math.floor(parseHM($("quietEnd").value) / 60)],
+    enabled: $("hbOn").checked,
+    testEcho: false,
+    diary: {
+      hour: Math.floor(dt / 60), minute: dt % 60,
+      enabled: $("diaryOn").checked,
+      style: $("diaryStyle").value,
+      maxChars: Number($("diaryMaxChars").value),
+      topics: $("diaryTopics").value,
+      customPrompt: $("diaryCustom").value
+    },
+    diaryPush: { enabled: true, startMinute: parseHM($("pushFrom").value), endMinute: parseHM($("pushTo").value) }
+  } };
+  if ($("hbPrompt").value.trim()) body.heartbeat.prompt = $("hbPrompt").value;
+  post("/config", body).then(function (r) {
+    toast(r.ok ? "已保存，下一轮 tick 生效" : ("保存失败：" + (r.error || "?")));
+    refreshAll();
+  });
+}
+
+function refreshAll() {
+  Promise.all([get("/status"), get("/config")]).then(function (res) {
+    var s = res[0], c = res[1];
+    var hb = s.heartbeat || {};
+    var iv = Number((c.heartbeat || {}).intervalSec || 14400) * 1000;
+    nextRunText = hb.lastAt ? new Date(Number(hb.lastAt) + iv).toLocaleString() : "—";
+    renderCards(s);
+    renderConfig(c);
+    $("sysdot").className = "dot ok";
+    $("systext").textContent = (s.session ? "会话在线" : "无会话") + " · " + new Date().toLocaleTimeString();
+  }).catch(function (e) {
+    $("sysdot").className = "dot bad";
+    $("systext").textContent = "连不上：" + e.message;
+  });
+}
+
+function doAct(cmd) {
+  // 早期：误点防护 —— 三个会改文件的动作都先问一句
+  if (cmd === "restart-dsh" && !confirm("重启 DSH？页面会掉线，需要用桌面快捷方式重开。")) return;
+  if (cmd === "rebuild" && !confirm("重建三层提示词？\n\n只是按现有来源（管规 / 记忆 / skills）重新拼一遍，\n内容不会变，被压缩的会话需要重新加载。确定重建？")) return;
+  if (cmd === "index" && !confirm("重建记忆索引？\n\n会重新扫一遍 memory\\ 下的文件，几十秒。确定重建？")) return;
+  post("/act", { cmd: cmd }).then(function (r) {
+    toast(r.ok ? ("已执行：" + cmd) : ("失败：" + (r.error || "")));
+    refreshAll();
+  });
+}
+
+function runChecks() {
+  $("checks").textContent = "跑体检中…";
+  get("/checks").then(function (r) {
+    var rs = r.results || [];
+    $("checks").textContent = rs.map(function (x) {
+      return (x.ok ? "✓ " : "⛔ ") + x.desc + (x.ok ? "" : ("  ← " + (x.detail || "")));
+    }).join("\n") || JSON.stringify(r);
+    var bad = rs.filter(function (x) { return !x.ok; }).length;
+    toast(bad ? ("体检有 " + bad + " 项不通过") : "体检全部通过");
+  });
+}
+
+function loadTier(which) {
+  get("/tiers").then(function (t) {
+    $("tierAt").textContent = t.builtAt ? ("构建于 " + new Date(t.builtAt).toLocaleString()) : "";
+    $("tiers").textContent = which === "context" ? (t.context || "（空）")
+      : which === "volatile" ? (t.volatile || "（空）") : (t.volatileFull || "（空）");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-tier]"), function (b) {
+      b.classList.toggle("on", b.dataset.tier === which);
+    });
+  });
+}
+
+function loadLog(name) {
+  get("/logs?name=" + encodeURIComponent(name)).then(function (r) {
+    $("logs").textContent = (r.lines || []).slice(-120).join("\n") || "（空）";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-log]"), function (b) {
+      b.classList.toggle("on", b.dataset.log === name);
+    });
+  });
+}
+
+function doSearch(silent) {
+  var q = ($("q").value || "").trim();
+  if (!q) { if (!silent) toast("先输入关键词"); return; }
+  get("/search?q=" + encodeURIComponent(q) + "&k=6").then(function (r) {
+    $("hits").textContent = (r.hits || []).map(function (h, i) {
+      return (i + 1) + ". [" + h.file + " › " + h.heading + "]\n" + h.text;
+    }).join("\n\n") || "（没命中）";
+  });
+}
+
+Array.prototype.forEach.call(document.querySelectorAll("[data-tier]"), function (b) {
+  b.onclick = function () { loadTier(b.dataset.tier); };
+});
+Array.prototype.forEach.call(document.querySelectorAll("[data-log]"), function (b) {
+  b.onclick = function () { loadLog(b.dataset.log); };
+});
+$("jitterOn").addEventListener("input", syncJitter);
+$("jitterRange").addEventListener("input", syncJitter);
+$("ivHours").addEventListener("input", syncInterval);
+$("ivMinutes").addEventListener("input", syncInterval);
+$("q").addEventListener("keydown", function (e) { if (e.key === "Enter") doSearch(); });
+
+refreshAll();
+setInterval(function () { if (!document.hidden) refreshAll(); }, 30000);
+
+/* ── 早期 交互增强（Claude 版）─────────────────────
+   ① 记住上次看的页签（localStorage）
+   ② ←/→ 键直接切页
+   ③ 任何输入改动 → 顶部出现「未保存」；保存后消失
+   ④ toast 提示（保存/失败）                                        */
+(function () {
+  var KEY = 'agentcore.tab';
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('nav button'));
+  if (!tabs.length) return;
+
+  function show(page) {
+    tabs.forEach(function (b) { b.classList.toggle('on', b.dataset.page === page); });
+    Array.prototype.forEach.call(document.querySelectorAll('section[id^=page-]'), function (s) {
+      s.classList.add('hide');
+    });
+    var el = document.getElementById('page-' + page);
+    if (el) { el.classList.remove('hide'); }
+    try { localStorage.setItem(KEY, page); } catch (e) {}
+    // 触发该页的懒加载
+    if (page === 'mem' && typeof doSearch === 'function') doSearch(true);
+    if (page === 'debug' && typeof loadTier === 'function') loadTier('context');
+    if (page === 'log' && typeof loadLog === 'function') loadLog('core');
+    if (page === 'bili' && typeof loadBili === 'function') loadBili();
+    // 进场动画重播
+    if (el) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
+  }
+  tabs.forEach(function (b) { b.onclick = function () { show(b.dataset.page); }; });
+
+  // 恢复上次页签（默认总览）
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  if (saved && document.getElementById('page-' + saved)) show(saved);
+
+  // ← → 切页
+  document.addEventListener('keydown', function (ev) {
+    if (ev.target && /INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)) return;
+    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+    var i = tabs.findIndex(function (b) { return b.classList.contains('on'); });
+    if (i < 0) i = 0;
+    var n = ev.key === 'ArrowRight' ? (i + 1) % tabs.length : (i - 1 + tabs.length) % tabs.length;
+    show(tabs[n].dataset.page);
+    tabs[n].focus();
+  });
+
+  // 未保存提示
+  var bar = document.createElement('span');
+  bar.className = 'dirty';
+  bar.innerHTML = '<span class="dot" style="background:var(--clay)"></span>未保存';
+  var chipHost = document.querySelector('header .spacer');
+  if (chipHost && chipHost.parentNode) chipHost.parentNode.insertBefore(bar, chipHost.nextSibling);
+  var dirty = false;
+  function mark(on) { dirty = !!on; bar.classList.toggle('on', dirty); }
+  document.addEventListener('input', function (ev) {
+    if (ev.target && /INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)) mark(true);
+  }, true);
+  document.addEventListener('change', function (ev) {
+    if (ev.target && /INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)) mark(true);
+  }, true);
+  window.__agentCoreMarkClean = function () { mark(false); };
+
+  // toast
+  // 把内容高度告诉外层（设置页里的 iframe 会自动长高，切页不会出现截断/空白）
+  function reportHeight() {
+    try {
+      var h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+      window.parent.postMessage({ type: 'agentcore-height', h: h }, '*');
+    } catch (e) {}
+  }
+  window.__agentCoreReportHeight = reportHeight;
+  if (window.ResizeObserver) {
+    new ResizeObserver(function () { reportHeight(); }).observe(document.body);
+  } else {
+    setInterval(reportHeight, 800);
+  }
+  window.addEventListener('load', reportHeight);
+
+  window.__agentCoreToast = function (msg, bad) {
+    var el = document.querySelector('.toast');
+    if (!el) { el = document.createElement('div'); el.className = 'toast'; document.body.appendChild(el); }
+    el.textContent = msg;
+    el.style.background = bad ? 'var(--bad)' : 'var(--ink)';
+    el.classList.add('show');
+    clearTimeout(el.__t);
+    el.__t = setTimeout(function () { el.classList.remove('show'); }, 2200);
+  };
+})();
+
+</script>
+</body>
+</html>

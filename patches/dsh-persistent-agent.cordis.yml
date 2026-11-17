@@ -1,0 +1,23 @@
+# dsh-persistent-agent —— profile 补丁：一次挂上 core + heartbeat（+ 可选的 onebot 适配器）
+#
+# 用法：把下面 insert 段合并进 profile 的 cordis.patch.yml。
+#   ~/.dsh/profiles/<profile>/cordis.patch.yml
+#
+# 注意：
+#   · core 必须排在 heartbeat 前面（heartbeat 依赖 core/lib/channel.mjs 的契约）。
+#   · 不用 QQ 就把 onebot 那两条删掉：core 会自动退回 NULL 通道，能跑，只是发不出消息。
+#   · 端口都是默认值，可在 agent.config.json 的 ports 段或环境变量里改。
+
+- insert:
+    - id: dsh-agent-core
+      name: dsh-agent-core
+
+    - id: dsh-heartbeat
+      name: dsh-heartbeat
+
+    # ── 可选：IM 适配器（本仓库自带 OneBot 11 / NapCat 实现）──
+    # 适配器不是插件，是 core 里 registerChannel() 的实现；
+    # 如果你把它做成独立插件，在这里挂；否则在 core 的 apply() 里注册即可。
+    - id: dsh-channel-onebot
+      name: dsh-channel-onebot
+      disabled: true      # 默认关；配好 identity.ownerId / channels.onebot 再打开

@@ -1,0 +1,4 @@
+# dsh-qq-heartbeat —— 挂载声明（只注册自己，不碰任何别的插件）
+- insert:
+    - id: dsh-qq-heartbeat
+      name: dsh-qq-heartbeat
