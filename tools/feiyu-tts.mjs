@@ -3,7 +3,7 @@
  * feiyu-tts.mjs —— SSR 角色声音：说话 / 换声 / 唱歌 的统一入口
  *
  * 后端是 WSL 里的 FeiyuVoice 服务（http://127.0.0.1:9880），需要它在跑：
- *   wsl -d Ubuntu-24.04 -- bash /mnt/d/feiyu/wsl-start-service.sh
+ *   bash "$AGENT_TTS_START_SH"   # 你的 TTS 服务启动脚本
  *
  * 用法：
  *   node feiyu-tts.mjs "要说的内容"                      默认 cute 声线

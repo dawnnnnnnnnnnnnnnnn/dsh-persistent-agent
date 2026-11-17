@@ -24,7 +24,8 @@ import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 
 const MEDIA_EXT = /\.(png|jpe?g|webp|gif|bmp|tiff?|psd|mp4|mov|webm|avi|mkv|wav|mp3|flac|m4a|ogg|safetensors|ckpt|pt|pth|onnx|bin|gguf|pkl|npy|npz|zip|7z|rar|tar|gz|lora)$/i
-const MEDIA_DIR = /(^|\/)(images?|imgs?|refs?|参考|素材|设定集|训练|lora|models?|outputs?|shots?)(\/|$)/i
+// 素材目录黑名单：按使用者自己的习惯加中文名进去，这里只留通用英文名
+const MEDIA_DIR = /(^|\/)(images?|imgs?|refs?|assets?|media|train(ing)?|lora|models?|outputs?|shots?|out)(\/|$)/i
 const MAX_BYTES = Number(process.env.GUARD_MAX_BYTES || 256 * 1024)
 
 const args = process.argv.slice(2)
